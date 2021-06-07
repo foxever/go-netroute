@@ -199,10 +199,31 @@ func getIface(index uint32) *net.Interface {
 	if err != nil {
 		return nil
 	}
-	for _, iface := range ifaces {
-		if bytes.Equal(iface.HardwareAddr, ifRow.PhysAddr[:]) {
-			return &iface
+	allZero := func(s []byte) bool {
+		for _, v := range s {
+			if v != 0 {
+				return false
+			}
 		}
+		return true
+	}
+	for _, iface := range ifaces {
+		if len(iface.HardwareAddr) == len(ifRow.PhysAddr[:]) {
+			if bytes.Equal(iface.HardwareAddr, ifRow.PhysAddr[:]) {
+				return &iface
+			}
+		} else if len(iface.HardwareAddr) > len(ifRow.PhysAddr) {
+			index := len(ifRow.PhysAddr)
+			if bytes.Equal([]byte(iface.HardwareAddr[:index]), ifRow.PhysAddr[:]) &&  allZero(iface.HardwareAddr[index:]) {
+				return &iface
+			}
+		} else { // len(iface.HardwareAddr) < len(ifRow.PhysAddr)
+			index := len(iface.HardwareAddr)
+			if bytes.Equal([]byte(iface.HardwareAddr), ifRow.PhysAddr[:index]) &&  allZero(ifRow.PhysAddr[index:]) {
+				return &iface
+			}
+		}
+		
 	}
 	return nil
 }
